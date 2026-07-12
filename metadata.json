@@ -1,0 +1,6 @@
+{
+  "name": "Agnelo Maiato",
+  "description": "Portal oficial do artista musical Agnelo Maiato, com área de login exclusiva, player de música, galeria de fotos e vídeos, e links sociais em um tema sofisticado escuro e dourado.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
