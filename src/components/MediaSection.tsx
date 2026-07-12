@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Camera, Video, Play, X, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { PROFESSIONAL_PHOTOS, VIDEO_CLIPS } from '../data';
 import { ProfessionalPhoto, VideoClip } from '../types';
+import SocialSharePopover from './SocialSharePopover';
 
 export default function MediaSection() {
   const [activeTab, setActiveTab] = useState<'photos' | 'videos'>('photos');
@@ -17,6 +18,32 @@ export default function MediaSection() {
   const filteredPhotos = activeCategory === 'Todos'
     ? PROFESSIONAL_PHOTOS
     : PROFESSIONAL_PHOTOS.filter(p => p.category === activeCategory);
+
+  // Check for shared media parameter on initial load
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sharedPhotoId = params.get('photo');
+    const sharedVideoId = params.get('video');
+    
+    if (sharedPhotoId) {
+      const foundPhoto = PROFESSIONAL_PHOTOS.find(p => p.id === sharedPhotoId);
+      if (foundPhoto) {
+        setSelectedPhoto(foundPhoto);
+        setTimeout(() => {
+          document.getElementById('gallery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 800);
+      }
+    } else if (sharedVideoId) {
+      const foundVideo = VIDEO_CLIPS.find(v => v.id === sharedVideoId);
+      if (foundVideo) {
+        setActiveTab('videos');
+        setSelectedVideo(foundVideo);
+        setTimeout(() => {
+          document.getElementById('gallery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 800);
+      }
+    }
+  }, []);
 
   return (
     <section id="gallery" className="py-24 bg-[#0B0B0C] relative border-t border-white/5">
@@ -109,12 +136,23 @@ export default function MediaSection() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5" />
 
                   {/* Eye Zoom Hover indicator */}
-                  <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/60 border border-amber-500/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/60 border border-amber-500/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
                     <Eye className="w-4 h-4 text-amber-400" />
                   </div>
 
+                  {/* Share button on hover */}
+                  <div className="absolute top-4 left-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <SocialSharePopover
+                      itemId={photo.id}
+                      itemTitle={photo.title}
+                      itemType="photo"
+                      size="icon-only"
+                      align="left"
+                    />
+                  </div>
+
                   {/* Bottom Text in Hover */}
-                  <div className="absolute bottom-0 left-0 right-0 p-5 translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none">
+                  <div className="absolute bottom-0 left-0 right-0 p-5 translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-10">
                     <span className="font-montserrat text-[9px] uppercase tracking-widest text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
                       {photo.category === 'Studio' ? 'Estúdio' : photo.category === 'Concert' ? 'Concerto' : 'Editorial'}
                     </span>
@@ -173,9 +211,18 @@ export default function MediaSection() {
                     </p>
                   </div>
                   
-                  <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between text-[11px] text-amber-400/80 font-montserrat font-bold uppercase tracking-wider">
-                    <span>Agnelo Maiato Produções</span>
-                    <span>HD 1080P</span>
+                  <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
+                    <div className="flex items-center gap-4 text-[11px] text-amber-400/80 font-montserrat font-bold uppercase tracking-wider">
+                      <span>Agnelo Maiato Produções</span>
+                      <span>HD 1080P</span>
+                    </div>
+                    <SocialSharePopover
+                      itemId={video.id}
+                      itemTitle={video.title}
+                      itemType="video"
+                      size="sm"
+                      align="top"
+                    />
                   </div>
                 </div>
               </div>
@@ -216,11 +263,20 @@ export default function MediaSection() {
                   referrerPolicy="no-referrer"
                   className="rounded-lg object-contain max-h-[70vh] max-w-full border border-white/10"
                 />
-                <div className="text-center mt-4 space-y-1">
+                <div className="text-center mt-4 space-y-2 flex flex-col items-center">
                   <h4 className="font-serif text-lg font-bold text-white">{selectedPhoto.title}</h4>
                   <p className="text-xs text-amber-400 uppercase tracking-widest font-montserrat">
                     Categoria: {selectedPhoto.category === 'Studio' ? 'Estúdio' : selectedPhoto.category === 'Concert' ? 'Concerto' : 'Editorial'}
                   </p>
+                  <div className="pt-1">
+                    <SocialSharePopover
+                      itemId={selectedPhoto.id}
+                      itemTitle={selectedPhoto.title}
+                      itemType="photo"
+                      size="sm"
+                      align="top"
+                    />
+                  </div>
                 </div>
               </motion.div>
             </motion.div>
@@ -251,20 +307,39 @@ export default function MediaSection() {
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.95, y: 15 }}
                 transition={{ type: 'spring', duration: 0.4 }}
-                className="relative aspect-video max-w-4xl w-full rounded-xl overflow-hidden border border-amber-500/30 shadow-[0_0_50px_rgba(212,175,55,0.2)] bg-black"
+                className="relative max-w-4xl w-full rounded-xl overflow-hidden border border-amber-500/30 shadow-[0_0_50px_rgba(212,175,55,0.2)] bg-black flex flex-col"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Embedded HTML5 mock video player or responsive static visual stream */}
-                <iframe
-                  width="100%"
-                  height="100%"
-                  src={`https://www.youtube.com/embed/${selectedVideo.youtubeId}?autoplay=1&mute=1`}
-                  title={selectedVideo.title}
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                  className="w-full h-full"
-                ></iframe>
+                <div className="relative aspect-video w-full">
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    src={`https://www.youtube.com/embed/${selectedVideo.youtubeId}?autoplay=1&mute=1`}
+                    title={selectedVideo.title}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                    className="w-full h-full absolute inset-0"
+                  ></iframe>
+                </div>
+                
+                {/* Video Info & Share underneath */}
+                <div className="p-5 bg-[#0F0F11] border-t border-white/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <h4 className="font-serif text-base sm:text-lg font-bold text-white tracking-wide">{selectedVideo.title}</h4>
+                    <p className="text-xs text-gray-400 mt-1 line-clamp-1">{selectedVideo.description}</p>
+                  </div>
+                  <div className="shrink-0 self-start sm:self-center">
+                    <SocialSharePopover
+                      itemId={selectedVideo.id}
+                      itemTitle={selectedVideo.title}
+                      itemType="video"
+                      size="md"
+                      align="top"
+                    />
+                  </div>
+                </div>
               </motion.div>
             </motion.div>
           )}

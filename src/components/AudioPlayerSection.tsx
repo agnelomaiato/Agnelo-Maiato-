@@ -3,6 +3,8 @@ import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, RotateCcw, Shuffl
 import { motion } from 'motion/react';
 import { getSavedSongs, getSavedVipSongs } from '../data';
 import { Song } from '../types';
+import SocialSharePopover from './SocialSharePopover';
+import AdBanner from './AdBanner';
 
 export default function AudioPlayerSection() {
   const [playlistType, setPlaylistType] = useState<'official' | 'vip'>('official');
@@ -63,8 +65,49 @@ export default function AudioPlayerSection() {
     };
   }, [playlistType]);
 
+  const isFirstRender = useRef(true);
+
+  // Check for shared track parameter on initial load
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sharedTrackId = params.get('track');
+    if (sharedTrackId) {
+      // Look up in official songs first
+      const officialSongs = getSavedSongs();
+      const officialIndex = officialSongs.findIndex(s => s.id === sharedTrackId);
+      if (officialIndex !== -1) {
+        setPlaylistType('official');
+        setSongsList(officialSongs);
+        setCurrentSongIndex(officialIndex);
+        setTimeout(() => {
+          document.getElementById('music')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 800);
+        return;
+      }
+
+      // Look up in VIP songs
+      const vipSongs = getSavedVipSongs();
+      const vipIndex = vipSongs.findIndex(s => s.id === sharedTrackId);
+      if (vipIndex !== -1) {
+        setPlaylistType('vip');
+        setSongsList(vipSongs);
+        setCurrentSongIndex(vipIndex);
+        setTimeout(() => {
+          document.getElementById('music')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 800);
+      }
+    }
+  }, []);
+
   // Sync song list when changing tab
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('track')) {
+        return; // Don't reset if we are on a shared track initial render
+      }
+    }
     handleSongsUpdated();
     setIsPlaying(false);
     setCurrentSongIndex(0);
@@ -289,14 +332,21 @@ export default function AudioPlayerSection() {
                       </div>
 
                       {/* Right side: plays & duration */}
-                      <div className="flex items-center gap-6">
+                      <div className="flex items-center gap-4 sm:gap-6">
                         <span className="hidden sm:inline font-mono text-[11px] text-gray-500">
                           {song.plays} visualizações
                         </span>
-                        <span className="flex items-center gap-1.5 font-mono text-xs text-gray-400">
+                        <span className="flex items-center gap-1.5 font-mono text-xs text-gray-400 mr-1">
                           <Clock className="w-3.5 h-3.5 text-gray-500" />
                           {song.duration}
                         </span>
+                        <SocialSharePopover
+                          itemId={song.id}
+                          itemTitle={song.title}
+                          itemType="track"
+                          size="icon-only"
+                          align="right"
+                        />
                       </div>
                     </div>
                   );
@@ -340,9 +390,20 @@ export default function AudioPlayerSection() {
 
               {/* Title & Equalizer Icon */}
               <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                <span className="font-montserrat text-[10px] uppercase tracking-widest text-amber-400 font-bold">
-                  Deck de Reprodução
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-montserrat text-[10px] uppercase tracking-widest text-amber-400 font-bold">
+                    Deck de Reprodução
+                  </span>
+                  {currentSong && currentSong.id !== 'placeholder' && (
+                    <SocialSharePopover
+                      itemId={currentSong.id}
+                      itemTitle={currentSong.title}
+                      itemType="track"
+                      size="sm"
+                      align="top"
+                    />
+                  )}
+                </div>
                 <div className={`flex items-end gap-1 h-5 ${isPlaying ? 'opacity-100' : 'opacity-30'}`}>
                   <span className={`w-1 bg-amber-400 rounded-sm h-1.5 ${isPlaying ? 'eq-bar-2' : ''}`} style={{ height: '6px' }} />
                   <span className={`w-1 bg-amber-400 rounded-sm h-3.5 ${isPlaying ? 'eq-bar-4' : ''}`} style={{ height: '14px' }} />
@@ -490,6 +551,12 @@ export default function AudioPlayerSection() {
           </div>
 
         </div>
+        
+        {/* Monitored sponsor banner ad */}
+        <div className="mt-8 border-t border-amber-500/5 pt-6 max-w-5xl mx-auto">
+          <AdBanner position="horizontal" />
+        </div>
+
       </div>
     </section>
   );

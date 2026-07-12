@@ -49,4 +49,20 @@ export interface User {
   username: string;
   email: string;
   isVIP: boolean;
+  isSubscribed?: boolean;
+  subscriptionType?: 'monthly' | 'yearly' | null;
 }
+
+export interface WalletSettings {
+  walletType: 'paypal' | 'multicaixa_express' | 'bank_iban' | 'crypto' | 'none';
+  walletAddress: string;
+  ownerName: string;
+  balanceKz: number;
+  balanceUsd: number;
+  subscriptionEarningsKz: number;
+  adEarningsUsd: number;
+  adClicks: number;
+  adImpressions: number;
+  subscribersCount: number;
+}
+
